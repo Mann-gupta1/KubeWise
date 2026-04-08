@@ -1,0 +1,56 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://kubewise:kubewise@postgres:5432/kubewise
+      DATABASE_URL_SYNC: postgresql://kubewise:kubewise@postgres:5432/kubewise
+      MOCK_MODE: ${MOCK_MODE:-true}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-http://prometheus:9090}
+      ENABLE_METRICS_SCHEDULER: ${ENABLE_METRICS_SCHEDULER:-false}
+      METRICS_COLLECTION_INTERVAL_MINUTES: ${METRICS_COLLECTION_INTERVAL_MINUTES:-15}
+      METRICS_COLLECTION_SCENARIO: ${METRICS_COLLECTION_SCENARIO:-wasteful}
+      ENABLE_DB_PERSISTENCE: ${ENABLE_DB_PERSISTENCE:-true}
+      CORS_ORIGINS: '["http://localhost:3000"]'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=kubewise
+      - POSTGRES_PASSWORD=kubewise
+      - POSTGRES_DB=kubewise
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kubewise"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
+    profiles:
+      - live
+
+volumes:
+  pgdata:

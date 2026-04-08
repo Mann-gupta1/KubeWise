@@ -1,0 +1,18 @@
+# Merge with base compose for Prometheus-backed (non-mock) metrics:
+#   docker compose -f docker-compose.yml -f docker-compose.live.yml --profile live up --build
+#
+# For Prometheus on the host (kind port-forward), set PROMETHEUS_URL, e.g.:
+#   PROMETHEUS_URL=http://host.docker.internal:9090 MOCK_MODE=false \
+#   docker compose --profile live up --build
+# and remove prometheus service dependency if you are not using the bundled Prometheus.
+
+services:
+  backend:
+    environment:
+      MOCK_MODE: "false"
+      PROMETHEUS_URL: http://prometheus:9090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
