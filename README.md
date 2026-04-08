@@ -252,23 +252,118 @@ kubewise/
 | **Live Prometheus not in Docker** | Correct `PROMETHEUS_URL` (host port-forward or LAN IP) and `MOCK_MODE=false` |
 | **Nothing else** | Mock mode + Docker Compose runs fully offline for demos |
 
-## AWS Deployment (Optional, Free Tier)
+## Production deployment (Neon + Render/Railway + Vercel)
 
-Provision a t3.micro EC2 instance with k3s:
+Use this path when you want a **live URL** without AWS billing. The **AWS Terraform** code under [`infra/terraform/`](infra/terraform/) stays in the repo for later (EKS, EC2, credits); you do not need it for this stack.
+
+**Architecture:** Neon (Postgres) → Render or Railway (FastAPI) → Vercel (Next.js). The API uses **mock cluster data** by default (`MOCK_MODE=true`), so no Kubernetes or Prometheus is required in the cloud.
+
+---
+
+### 1. Neon (Postgres) — database only
+
+1. Sign up at [https://neon.tech](https://neon.tech) and create a **project** (pick a region close to your API region).
+2. Create a **database** (default `neondb` is fine).
+3. Open **Connection details** and copy the connection string (role: use a user that can create tables, usually the default).
+4. You need **two** URLs for this app:
+   - **Async (FastAPI / SQLAlchemy):** take Neon’s URI and change the scheme to `postgresql+asyncpg://` (keep host, user, password, database name).
+   - **Sync (Alembic / migrations):** keep `postgresql://` (psycopg2).
+
+Example (values are illustrative):
+
+```text
+# Async — app runtime
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@ep-xxxxx.us-east-2.aws.neon.tech/neondb?ssl=require
+
+# Sync — alembic from Dockerfile / local
+DATABASE_URL_SYNC=postgresql://USER:PASSWORD@ep-xxxxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+```
+
+If the app fails to connect, check Neon’s docs for **SQLAlchemy** / **asyncpg** and ensure `ssl=require` or `sslmode=require` matches what Neon shows.
+
+---
+
+### 2. Backend — Render (recommended) or Railway
+
+**Common environment variables** (set these in the service dashboard):
+
+| Variable | Example / notes |
+|----------|-------------------|
+| `DATABASE_URL` | Async URL above (`postgresql+asyncpg://...`) |
+| `DATABASE_URL_SYNC` | Sync URL above (`postgresql://...?sslmode=require`) |
+| `MOCK_MODE` | `true` (demo without a real cluster) |
+| `ENABLE_DB_PERSISTENCE` | `true` if you want writes to Neon |
+| `CORS_ORIGINS` | JSON array string, e.g. `["https://your-app.vercel.app"]` — add your **exact** Vercel URL (and `http://localhost:3000` only if you need local dev against prod API) |
+| `PROMETHEUS_URL` | `http://localhost:9090` (unused when `MOCK_MODE=true`) |
+
+**Render (Web Service)**
+
+1. New **Web Service** → connect the **KubeWise** GitHub repo.
+2. **Root directory:** `backend`
+3. **Runtime:** Python 3
+4. **Build command:** `pip install -r requirements.txt`
+5. **Start command:**  
+   `sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`
+6. **Instance type:** Free tier is OK for demos; cold starts are normal.
+7. Copy the service URL (e.g. `https://kubewise-api.onrender.com`).
+
+**Railway**
+
+1. New project → **Deploy from GitHub** → select repo, set **root directory** to `backend`.
+2. Railway detects Python; set **Start command** to the same `sh -c "alembic upgrade head && ..."` as above (use `$PORT` if Railway injects it).
+3. Add the same env vars in **Variables**.
+
+**Health check:** open `https://YOUR-API-HOST/docs` — you should see FastAPI Swagger.
+
+---
+
+### 3. Frontend — Vercel
+
+1. Import the repo in [Vercel](https://vercel.com) → set **Root Directory** to `frontend`.
+2. Framework: **Next.js** (default).
+3. **Environment variable:**
+   - `NEXT_PUBLIC_API_URL` = `https://YOUR-API-HOST/api/v1`  
+     (no trailing slash; use your Render/Railway URL from step 2).
+4. Deploy. Open the Vercel URL; the dashboard should load data from the API.
+
+If the UI shows CORS errors, your `CORS_ORIGINS` on the backend must include the **exact** Vercel origin (scheme + host, no path), e.g. `https://kubewise-xxxxx.vercel.app`.
+
+**Troubleshooting: “Connection Error” / “Failed to fetch” / message about port 8000**
+
+That message appears when the browser is still using the **default** API base (`http://localhost:8000/api/v1`) because **`NEXT_PUBLIC_API_URL` was not set when the Next.js app was built**.
+
+**Preview works but Production (`kubewise.vercel.app`) does not:** Vercel stores env vars **per environment** (Production, Preview, Development). If you only added `NEXT_PUBLIC_API_URL` under **Preview**, production builds still bake in localhost. Either add the same variable for **Production**, or rely on the default in [`frontend/next.config.ts`](frontend/next.config.ts) (Render URL when `VERCEL_ENV=production`) and **redeploy** Production once.
+
+1. In **Vercel** → Project → **Settings** → **Environment Variables**, set  
+   `NEXT_PUBLIC_API_URL` = `https://YOUR-RENDER-HOST/api/v1`  
+   (example: `https://kubewise.onrender.com/api/v1`) for **Production** (and Preview if you want).
+2. **Redeploy** the **Production** deployment. `NEXT_PUBLIC_*` is inlined at **build** time; a hard refresh does not change the bundle.
+3. On **Render**, set **`CORS_ORIGINS`** to a JSON array that includes your Vercel origin, e.g.  
+   `["https://kubewise.vercel.app"]`  
+   (add `http://localhost:3000` in the same array if you still hit the prod API from local dev).
+4. Confirm the API is up: open `https://YOUR-RENDER-HOST/docs` in the browser.
+
+---
+
+### 4. Order of operations
+
+1. Create **Neon** → copy both connection strings.
+2. Deploy **backend** (Render/Railway) with env vars → confirm `/docs` works.
+3. Set **`CORS_ORIGINS`** to your future Vercel URL (you can add/edit after first deploy).
+4. Deploy **Vercel** with `NEXT_PUBLIC_API_URL` pointing at the API.
+5. Update **`CORS_ORIGINS`** again if Vercel assigned a different production domain.
+
+---
+
+### 5. Optional AWS / Terraform (keep for later)
+
+The [`infra/terraform/`](infra/terraform/) module is **optional**. It is useful when you want a cheap EC2 + k3s node or later EKS work; it is **not** required for Neon + Render + Vercel. No payment method is needed for the serverless path above.
 
 ```bash
 cd infra/terraform
 terraform init
 terraform apply -var="key_pair_name=your-key"
 ```
-
-Or deploy the application to free-tier services:
-
-- **Backend**: Render / Railway
-- **Frontend**: Vercel
-- **Database**: Neon Postgres (free tier)
-
-The deployed version runs in mock mode by default.
 
 ## Mock Scenarios
 
