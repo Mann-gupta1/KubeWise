@@ -293,7 +293,7 @@ If the app fails to connect, check Neon’s docs for **SQLAlchemy** / **asyncpg*
 | `DATABASE_URL_SYNC` | Sync URL above (`postgresql://...?sslmode=require`) |
 | `MOCK_MODE` | `true` (demo without a real cluster) |
 | `ENABLE_DB_PERSISTENCE` | `true` if you want writes to Neon |
-| `CORS_ORIGINS` | JSON array string, e.g. `["https://your-app.vercel.app"]` — add your **exact** Vercel URL (and `http://localhost:3000` only if you need local dev against prod API) |
+| `CORS_ORIGINS` | JSON array of **frontend** origins (where the browser loads the UI), e.g. `["https://kubewise.vercel.app"]`. Do **not** put your Render API URL here — CORS is about the page origin, not the API host. Add `http://localhost:3000` only if you need local dev against prod API |
 | `PROMETHEUS_URL` | `http://localhost:9090` (unused when `MOCK_MODE=true`) |
 
 **Render (Web Service)**

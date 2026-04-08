@@ -45,7 +45,9 @@ export default function DashboardHome() {
           <p className="text-red-400 font-medium">Connection Error</p>
           <p className="text-red-300/70 text-sm mt-1">{error}</p>
           <p className="text-gray-500 text-xs mt-3">
-            Make sure the FastAPI backend is running on port 8000
+            Local: run the API on port 8000. Production: set{" "}
+            <code className="text-gray-400">NEXT_PUBLIC_API_URL</code> and ensure CORS on the API
+            allows this site&apos;s origin (your Vercel URL), not the API host.
           </p>
         </div>
       </div>

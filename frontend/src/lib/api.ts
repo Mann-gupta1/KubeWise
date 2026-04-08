@@ -1,7 +1,22 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+/** Used when the app is opened on Vercel but `NEXT_PUBLIC_API_URL` was not baked into the build. */
+const DEFAULT_API_ON_VERCEL = "https://kubewise.onrender.com/api/v1";
+
+function getApiBase(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "kubewise.vercel.app" || host.endsWith(".vercel.app")) {
+      return DEFAULT_API_ON_VERCEL;
+    }
+  }
+
+  return "http://localhost:8000/api/v1";
+}
 
 async function fetchJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+  const res = await fetch(`${getApiBase()}${path}`, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }
