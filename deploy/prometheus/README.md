@@ -40,7 +40,19 @@ Open:
 
 `https://YOUR-PROMETHEUS-SERVICE.onrender.com/api/v1/query?query=up`
 
-You should see JSON with `"status":"success"`.
+You should see JSON with `"status":"success"` and a `result` array (e.g. `up` = `1`).
+
+### “No data” in the Prometheus web UI
+
+The UI does **not** show a graph until you **run a query**.
+
+1. Open `https://YOUR-PROMETHEUS-SERVICE.onrender.com/` (or `/graph`).
+2. In the query box, enter **`up`** or **`prometheus_build_info`**.
+3. Click **Execute**, then open the **Table** or **Graph** tab.
+
+This minimal server only scrapes **itself**, so you only have a small set of metrics (e.g. `up`, `prometheus_*`, `go_*`). There is **no** Kubernetes pod/node data until you add more scrape jobs.
+
+To confirm scraping works: **Status → Targets** — the `prometheus` job should be **UP** (green).
 
 ## Optional: custom domain
 
