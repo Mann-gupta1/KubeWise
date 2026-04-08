@@ -48,9 +48,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Regex allows any Vercel host (production + preview deploys) without listing each branch in CORS_ORIGINS.
+# Render env must still list explicit origins (e.g. localhost) for local dev.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

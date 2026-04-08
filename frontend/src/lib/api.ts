@@ -2,7 +2,15 @@
 const DEFAULT_API_ON_VERCEL = "https://kubewise.onrender.com/api/v1";
 
 function getApiBase(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  let fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  // Ignore a mis-set Vercel env that still points at localhost when the app runs on Vercel.
+  if (fromEnv && typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const onVercel = host === "kubewise.vercel.app" || host.endsWith(".vercel.app");
+    if (onVercel && (fromEnv.includes("localhost") || fromEnv.includes("127.0.0.1"))) {
+      fromEnv = "";
+    }
+  }
   if (fromEnv) return fromEnv.replace(/\/$/, "");
 
   if (typeof window !== "undefined") {

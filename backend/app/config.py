@@ -24,8 +24,11 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             s = v.strip()
             if s.startswith("["):
-                return json.loads(s)
-            return [x.strip() for x in s.split(",") if x.strip()]
+                v = json.loads(s)
+            else:
+                return [x.strip().rstrip("/") for x in s.split(",") if x.strip()]
+        if isinstance(v, list):
+            return [str(x).strip().rstrip("/") for x in v if str(x).strip()]
         return v
 
 
