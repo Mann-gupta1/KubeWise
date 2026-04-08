@@ -304,7 +304,7 @@ If the app fails to connect, check Neon’s docs for **SQLAlchemy** / **asyncpg*
 4. **Build command:** `pip install -r requirements.txt`
 5. **Start command:**  
    `sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`
-6. **Instance type:** Free tier is OK for demos; cold starts are normal.
+6. **Instance type:** Free tier is OK for demos; **services spin down after idle** (cold start ~30–60s on first request). Open `/docs` if the UI times out. Set `PROMETHEUS_FALLBACK_MOCK=true` (default) so a sleeping Prometheus does not take down the API when `MOCK_MODE=false`.
 7. Copy the service URL (e.g. `https://kubewise-api.onrender.com`).
 
 **Railway**

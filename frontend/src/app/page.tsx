@@ -44,10 +44,11 @@ export default function DashboardHome() {
         <div className="bg-red-900/20 border border-red-800 rounded-xl p-6 text-center">
           <p className="text-red-400 font-medium">Connection Error</p>
           <p className="text-red-300/70 text-sm mt-1">{error}</p>
-          <p className="text-gray-500 text-xs mt-3">
-            Local: run the API on port 8000. Production: set{" "}
-            <code className="text-gray-400">NEXT_PUBLIC_API_URL</code> and ensure CORS on the API
-            allows this site&apos;s origin (your Vercel URL), not the API host.
+          <p className="text-gray-500 text-xs mt-3 max-w-lg mx-auto">
+            Local: run the API on port 8000. Hosted: set{" "}
+            <code className="text-gray-400">NEXT_PUBLIC_API_URL</code> if needed, CORS must allow this
+            Vercel origin, and Render free services sleep — open your API <code className="text-gray-400">/docs</code>{" "}
+            to wake it, then retry.
           </p>
         </div>
       </div>

@@ -23,8 +23,32 @@ function getApiBase(): string {
   return "http://localhost:8000/api/v1";
 }
 
+const FETCH_TIMEOUT_MS = 120_000;
+
 async function fetchJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${getApiBase()}${path}`, { cache: "no-store" });
+  const url = `${getApiBase()}${path}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url, { cache: "no-store", signal: controller.signal });
+  } catch (e) {
+    if (e instanceof Error) {
+      if (e.name === "AbortError") {
+        throw new Error(
+          `Request timed out after ${FETCH_TIMEOUT_MS / 1000}s. Render free tier cold starts can take 60s+ — try again, or open your API /docs once to wake the service.`,
+        );
+      }
+      if (e.message === "Failed to fetch" || e.name === "TypeError") {
+        throw new Error(
+          "Could not reach the API (network). Wake the Render service (visit its /docs), confirm it is not sleeping, and check CORS allows your Vercel origin.",
+        );
+      }
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }

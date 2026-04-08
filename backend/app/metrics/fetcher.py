@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+
 import httpx
 
 from app.config import settings
+
+logger = logging.getLogger("kubewise.metrics")
 from app.mock.generator import generate_cluster_data, generate_time_series
 from app.metrics import prometheus_queries as pq
 
@@ -17,17 +21,39 @@ class MetricsFetcher:
     async def get_cluster_snapshot(self, scenario: str = "wasteful") -> dict:
         if self.mock_mode:
             return generate_cluster_data(scenario)
-        return await self._fetch_live_cluster()
+        try:
+            return await self._fetch_live_cluster()
+        except Exception as e:
+            if settings.PROMETHEUS_FALLBACK_MOCK:
+                logger.warning(
+                    "Prometheus unavailable (%s); returning mock cluster (scenario=%s)",
+                    e,
+                    scenario,
+                )
+                return generate_cluster_data(scenario)
+            raise
 
     async def get_cpu_time_series(self, pod_name: str | None = None) -> list[dict]:
         if self.mock_mode:
             return generate_time_series(base_value=0.15, variance=0.1)
-        return await self._query_range(pq.CPU_USAGE_BY_POD)
+        try:
+            return await self._query_range(pq.CPU_USAGE_BY_POD)
+        except Exception as e:
+            if settings.PROMETHEUS_FALLBACK_MOCK:
+                logger.warning("Prometheus unavailable for CPU series (%s); using synthetic series", e)
+                return generate_time_series(base_value=0.15, variance=0.1)
+            raise
 
     async def get_memory_time_series(self, pod_name: str | None = None) -> list[dict]:
         if self.mock_mode:
             return generate_time_series(base_value=256_000_000, variance=0.08)
-        return await self._query_range(pq.MEMORY_USAGE_BY_POD)
+        try:
+            return await self._query_range(pq.MEMORY_USAGE_BY_POD)
+        except Exception as e:
+            if settings.PROMETHEUS_FALLBACK_MOCK:
+                logger.warning("Prometheus unavailable for memory series (%s); using synthetic series", e)
+                return generate_time_series(base_value=256_000_000, variance=0.08)
+            raise
 
     async def _fetch_live_cluster(self) -> dict:
         pods_cpu = await self._query_instant(pq.CPU_USAGE_BY_POD)

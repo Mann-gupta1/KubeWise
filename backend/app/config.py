@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://kubewise:kubewise@localhost:5432/kubewise"
     DATABASE_URL_SYNC: str = "postgresql://kubewise:kubewise@localhost:5432/kubewise"
     PROMETHEUS_URL: str = "http://localhost:9090"
+    # When MOCK_MODE=false and Prometheus is down/sleeping, still return mock data so the API/UI stay up.
+    PROMETHEUS_FALLBACK_MOCK: bool = True
     MOCK_MODE: bool = True
     API_V1_PREFIX: str = "/api/v1"
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
