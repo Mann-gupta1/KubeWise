@@ -315,6 +315,8 @@ If the app fails to connect, check Neon’s docs for **SQLAlchemy** / **asyncpg*
 
 **Health check:** open `https://YOUR-API-HOST/docs` — you should see FastAPI Swagger.
 
+**Optional — Prometheus URL on Render (live mode):** To obtain a public `PROMETHEUS_URL` for `MOCK_MODE=false`, deploy a second Render **Web Service** using Docker from [`deploy/prometheus/`](deploy/prometheus/) and follow [`deploy/prometheus/README.md`](deploy/prometheus/README.md). That stack exposes the Prometheus HTTP API; it does not scrape a real cluster until you add scrape targets. For a public demo, `MOCK_MODE=true` is usually simpler.
+
 ---
 
 ### 3. Frontend — Vercel
