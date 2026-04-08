@@ -22,7 +22,15 @@ class MetricsFetcher:
         if self.mock_mode:
             return generate_cluster_data(scenario)
         try:
-            return await self._fetch_live_cluster()
+            snap = await self._fetch_live_cluster()
+            # Minimal Prometheus (only self-scrape `up`) has no kube_* / container_* series — queries return empty → UI all zeros.
+            if settings.PROMETHEUS_FALLBACK_MOCK and self._live_snapshot_has_no_kubernetes_metrics(snap):
+                logger.warning(
+                    "Prometheus has no Kubernetes/cAdvisor metrics; using mock cluster (scenario=%s)",
+                    scenario,
+                )
+                return generate_cluster_data(scenario)
+            return snap
         except Exception as e:
             if settings.PROMETHEUS_FALLBACK_MOCK:
                 logger.warning(
@@ -33,11 +41,20 @@ class MetricsFetcher:
                 return generate_cluster_data(scenario)
             raise
 
+    @staticmethod
+    def _live_snapshot_has_no_kubernetes_metrics(snap: dict) -> bool:
+        summary = snap.get("summary") or {}
+        return summary.get("total_nodes", 0) == 0 and summary.get("total_pods", 0) == 0
+
     async def get_cpu_time_series(self, pod_name: str | None = None) -> list[dict]:
         if self.mock_mode:
             return generate_time_series(base_value=0.15, variance=0.1)
         try:
-            return await self._query_range(pq.CPU_USAGE_BY_POD)
+            series = await self._query_range(pq.CPU_USAGE_BY_POD)
+            if settings.PROMETHEUS_FALLBACK_MOCK and not series:
+                logger.warning("Prometheus returned no CPU time series; using synthetic series")
+                return generate_time_series(base_value=0.15, variance=0.1)
+            return series
         except Exception as e:
             if settings.PROMETHEUS_FALLBACK_MOCK:
                 logger.warning("Prometheus unavailable for CPU series (%s); using synthetic series", e)
@@ -48,7 +65,11 @@ class MetricsFetcher:
         if self.mock_mode:
             return generate_time_series(base_value=256_000_000, variance=0.08)
         try:
-            return await self._query_range(pq.MEMORY_USAGE_BY_POD)
+            series = await self._query_range(pq.MEMORY_USAGE_BY_POD)
+            if settings.PROMETHEUS_FALLBACK_MOCK and not series:
+                logger.warning("Prometheus returned no memory time series; using synthetic series")
+                return generate_time_series(base_value=256_000_000, variance=0.08)
+            return series
         except Exception as e:
             if settings.PROMETHEUS_FALLBACK_MOCK:
                 logger.warning("Prometheus unavailable for memory series (%s); using synthetic series", e)

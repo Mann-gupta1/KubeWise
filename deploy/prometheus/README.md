@@ -50,7 +50,7 @@ The UI does **not** show a graph until you **run a query**.
 2. In the query box, enter **`up`** or **`prometheus_build_info`**.
 3. Click **Execute**, then open the **Table** or **Graph** tab.
 
-This minimal server only scrapes **itself**, so you only have a small set of metrics (e.g. `up`, `prometheus_*`, `go_*`). There is **no** Kubernetes pod/node data until you add more scrape jobs.
+This minimal server only scrapes **itself**, so you only have a small set of metrics (e.g. `up`, `prometheus_*`, `go_*`). KubeWise’s live mode expects **kube-state-metrics** and **cAdvisor**-style series (`kube_*`, `container_*`). If those are missing, the API falls back to **mock** data when `PROMETHEUS_FALLBACK_MOCK=true` (default) so the UI is not all zeros. To drive the dashboard from real cluster metrics, scrape a cluster that exports those metrics (see [`backend/app/metrics/prometheus_queries.py`](../../backend/app/metrics/prometheus_queries.py)).
 
 To confirm scraping works: **Status → Targets** — the `prometheus` job should be **UP** (green).
 
