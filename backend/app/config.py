@@ -1,7 +1,10 @@
 import json
+from typing import Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+TelemetryMode = Literal["demo", "cluster", "local", "hybrid"]
 
 
 class Settings(BaseSettings):
@@ -11,6 +14,10 @@ class Settings(BaseSettings):
     # When MOCK_MODE=false and Prometheus is down/sleeping, still return mock data so the API/UI stay up.
     PROMETHEUS_FALLBACK_MOCK: bool = True
     MOCK_MODE: bool = True
+    # When MOCK_MODE=false: cluster=k8s/cAdvisor+kube-state metrics; local=node_exporter; hybrid=cluster then node_exporter; demo=synthetic only.
+    TELEMETRY_MODE: TelemetryMode = "cluster"
+    # Optional OpenCost UI/API (in-cluster is typical). See https://github.com/opencost/opencost — no public dataset; deploy or leave unset.
+    OPENCOST_URL: str = ""
     API_V1_PREFIX: str = "/api/v1"
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
     ENABLE_METRICS_SCHEDULER: bool = False
@@ -35,3 +42,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def effective_telemetry_mode() -> TelemetryMode:
+    """MOCK_MODE=true forces demo (legacy); otherwise TELEMETRY_MODE is used."""
+    if settings.MOCK_MODE:
+        return "demo"
+    return settings.TELEMETRY_MODE

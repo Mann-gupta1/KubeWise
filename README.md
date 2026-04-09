@@ -114,6 +114,23 @@ The override file sets `MOCK_MODE=false` and `PROMETHEUS_URL=http://prometheus:9
 
 Copy [.env.example](.env.example) to `.env` and adjust variables as needed.
 
+### Telemetry modes (multi-environment pipeline)
+
+`MOCK_MODE=true` (default) forces **demo** mode: synthetic cluster data only — no Prometheus required.
+
+When **`MOCK_MODE=false`**, set **`TELEMETRY_MODE`**:
+
+| Mode | Behavior |
+|------|----------|
+| **`demo`** | Same as above — synthetic data (rarely needed if you already set `MOCK_MODE=false`; use `MOCK_MODE=true` instead). |
+| **`cluster`** | Kubernetes-style metrics from Prometheus (`kube_*`, `container_*`) — needs kube-state-metrics / cAdvisor scraping. |
+| **`local`** | **node_exporter** metrics only (`node_cpu_seconds_total`, `node_memory_*`) — valid **host/VM telemetry** pipeline without Kubernetes. Point `PROMETHEUS_URL` at a Prometheus that scrapes node_exporter. |
+| **`hybrid`** | Try **cluster** first; if empty or errors, use **node_exporter**; if still nothing, honor **`PROMETHEUS_FALLBACK_MOCK`**. |
+
+Example **local** stack: `node_exporter` → Prometheus → FastAPI (`TELEMETRY_MODE=local`) → dashboard.
+
+**OpenCost** ([`opencost/opencost`](https://github.com/opencost/opencost)) exposes allocation APIs when deployed in-cluster; there is **no** global public dataset URL. Set **`OPENCOST_URL`** to your OpenCost service (e.g. `http://opencost.opencost:9003`) and probe **`GET /api/v1/integrations/opencost/health`**. Effective mode and flags: **`GET /api/v1/telemetry`**.
+
 ### Seed mock data (warm API cache)
 
 ```bash
