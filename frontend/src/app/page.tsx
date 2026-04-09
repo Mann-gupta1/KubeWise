@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import ClusterOverview from "@/components/ClusterOverview";
-import PipelineOverview from "@/components/PipelineOverview";
 import SavingsTable from "@/components/SavingsTable";
 import { api } from "@/lib/api";
 import { DASHBOARD_POLL_INTERVAL_MS } from "@/lib/dashboardPoll";
@@ -97,8 +96,6 @@ export default function DashboardHome() {
           Data refreshes automatically every {DASHBOARD_POLL_INTERVAL_MS / 1000}s while this tab is open.
         </p>
       </div>
-
-      <PipelineOverview />
 
       {clusterMetrics?.telemetry?.mock_mode || clusterMetrics?.telemetry?.live === false ? (
         <div className="rounded-lg border border-amber-700/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-100/90">
