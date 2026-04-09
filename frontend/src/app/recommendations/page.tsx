@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import RecommendationCard from "@/components/RecommendationCard";
 import { api } from "@/lib/api";
+import { DASHBOARD_POLL_INTERVAL_MS } from "@/lib/dashboardPoll";
 import type { Recommendation } from "@/lib/types";
 
 export default function RecommendationsPage() {
@@ -18,8 +19,8 @@ export default function RecommendationsPage() {
     return () => clearTimeout(id);
   }, [deploymentFilter]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const data = (await api.getRecommendations(
         "wasteful",
@@ -30,12 +31,17 @@ export default function RecommendationsPage() {
     } catch {
       setRecommendations([]);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [filterSeverity, debouncedDeployment]);
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => load({ silent: true }), DASHBOARD_POLL_INTERVAL_MS);
+    return () => window.clearInterval(id);
   }, [load]);
 
   const sorted = [...recommendations].sort((a, b) =>

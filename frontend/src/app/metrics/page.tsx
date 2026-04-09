@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import MetricsChart from "@/components/MetricsChart";
 import NodeHeatmap from "@/components/NodeHeatmap";
 import { api } from "@/lib/api";
+import { DASHBOARD_POLL_INTERVAL_MS } from "@/lib/dashboardPoll";
 import { formatPercent, formatCPU, formatMemory } from "@/lib/format";
 import type {
   NodeUtilization,
@@ -19,6 +20,7 @@ export default function MetricsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       try {
         const [n, p, cpu, mem] = await Promise.all([
@@ -27,17 +29,24 @@ export default function MetricsPage() {
           api.getCpuTimeSeries() as Promise<TimeSeriesPoint[]>,
           api.getMemoryTimeSeries() as Promise<TimeSeriesPoint[]>,
         ]);
-        setNodes(n);
-        setPods(p);
-        setCpuTS(cpu);
-        setMemTS(mem);
+        if (!cancelled) {
+          setNodes(n);
+          setPods(p);
+          setCpuTS(cpu);
+          setMemTS(mem);
+        }
       } catch {
         /* backend not reachable */
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
+    const poll = window.setInterval(load, DASHBOARD_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(poll);
+    };
   }, []);
 
   if (loading) {

@@ -386,6 +386,7 @@ If the app fails to connect, check Neon’s docs for **SQLAlchemy** / **asyncpg*
    - `NEXT_PUBLIC_API_URL` = `https://YOUR-API-HOST/api/v1`  
      (no trailing slash; use your Render/Railway URL from step 2).
 4. Deploy. Open the Vercel URL; the dashboard should load data from the API.
+5. **Auto-refresh:** Overview, Metrics, Cost, and Recommendations pages **poll the API every 30s** by default (no manual refresh needed). Override with **`NEXT_PUBLIC_POLL_INTERVAL_MS`** (milliseconds, 10000–300000) if you rebuild the frontend.
 
 If the UI shows CORS errors, your `CORS_ORIGINS` on the backend must include the **exact** Vercel origin (scheme + host, no path), e.g. `https://kubewise-xxxxx.vercel.app`.
 

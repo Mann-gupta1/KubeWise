@@ -5,7 +5,15 @@ import ClusterOverview from "@/components/ClusterOverview";
 import PipelineOverview from "@/components/PipelineOverview";
 import SavingsTable from "@/components/SavingsTable";
 import { api } from "@/lib/api";
+import { DASHBOARD_POLL_INTERVAL_MS } from "@/lib/dashboardPoll";
 import type { ClusterMetrics, CostSummary } from "@/lib/types";
+
+async function loadOverviewData() {
+  return Promise.all([
+    api.getClusterMetrics() as Promise<ClusterMetrics>,
+    api.getCostSummary() as Promise<CostSummary>,
+  ]);
+}
 
 export default function DashboardHome() {
   const [clusterMetrics, setClusterMetrics] = useState<ClusterMetrics | null>(null);
@@ -14,21 +22,40 @@ export default function DashboardHome() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
       try {
-        const [metrics, cost] = await Promise.all([
-          api.getClusterMetrics() as Promise<ClusterMetrics>,
-          api.getCostSummary() as Promise<CostSummary>,
-        ]);
+        const [metrics, cost] = await loadOverviewData();
+        if (!cancelled) {
+          setClusterMetrics(metrics);
+          setCostSummary(cost);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    const poll = window.setInterval(async () => {
+      try {
+        const [metrics, cost] = await loadOverviewData();
         setClusterMetrics(metrics);
         setCostSummary(cost);
+        setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
-      } finally {
-        setLoading(false);
       }
-    }
-    load();
+    }, DASHBOARD_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(poll);
+    };
   }, []);
 
   if (loading) {
@@ -65,6 +92,9 @@ export default function DashboardHome() {
         <h1 className="text-2xl font-bold text-gray-100">Cluster Overview</h1>
         <p className="text-gray-400 text-sm mt-1">
           {clusterMetrics?.cluster.name} &mdash; {clusterMetrics?.cluster.provider} / {clusterMetrics?.cluster.region}
+        </p>
+        <p className="text-gray-500 text-xs mt-1">
+          Data refreshes automatically every {DASHBOARD_POLL_INTERVAL_MS / 1000}s while this tab is open.
         </p>
       </div>
 

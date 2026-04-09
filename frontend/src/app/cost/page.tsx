@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import CostComparison from "@/components/CostComparison";
 import { api } from "@/lib/api";
+import { DASHBOARD_POLL_INTERVAL_MS } from "@/lib/dashboardPoll";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { CostSummary, DeploymentCost } from "@/lib/types";
 
@@ -12,21 +13,29 @@ export default function CostPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       try {
         const [summary, byDep] = await Promise.all([
           api.getCostSummary() as Promise<CostSummary>,
           api.getCostByDeployment() as Promise<DeploymentCost[]>,
         ]);
-        setCostSummary(summary);
-        setDeploymentCosts(byDep);
+        if (!cancelled) {
+          setCostSummary(summary);
+          setDeploymentCosts(byDep);
+        }
       } catch {
         /* backend not reachable */
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
+    const poll = window.setInterval(load, DASHBOARD_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(poll);
+    };
   }, []);
 
   if (loading) {
