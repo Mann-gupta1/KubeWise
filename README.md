@@ -161,11 +161,44 @@ Example **local** stack: `node_exporter` → Prometheus → FastAPI (`TELEMETRY_
 | **Scheduled collection** | Set `ENABLE_METRICS_SCHEDULER=true` — APScheduler refreshes the metrics snapshot every `METRICS_COLLECTION_INTERVAL_MINUTES` |
 | **Terraform (optional)** | `infra/terraform/` — requires your AWS credentials + `key_pair_name` |
 
+## For reviewers (portfolio evidence)
+
+The **home page** is a cluster overview; the **intelligence pipeline** is visible across **Recommendations**, **Cost Analysis**, **Metrics**, and **Simulations** (navbar), and in **OpenAPI** at `/docs`. The backend is not “mock-only”: it implements PromQL-backed fetchers, detection rules, a recommender, pricing-based cost estimation, and simulations.
+
+| Concern | Where it lives |
+|---------|----------------|
+| **Prometheus / PromQL** | [`backend/app/metrics/prometheus_queries.py`](backend/app/metrics/prometheus_queries.py), [`fetcher.py`](backend/app/metrics/fetcher.py) (`/api/v1/query` + `query_range`) |
+| **Inefficiency detection** | [`backend/app/analyzer/inefficiency_detector.py`](backend/app/analyzer/inefficiency_detector.py) — e.g. overprovisioned CPU/memory, underutilized nodes (`GET /api/v1/recommendations/inefficiencies`) |
+| **Autoscaling recommendations** | [`backend/app/recommender/autoscaler.py`](backend/app/recommender/autoscaler.py) — replica and request suggestions, confidence (`GET /api/v1/recommendations`) |
+| **Cost engine** | [`backend/app/estimator/cost_estimator.py`](backend/app/estimator/cost_estimator.py) — vCPU / GiB-hour style math (`GET /api/v1/cost/summary`, `/cost/by-deployment`) |
+| **Simulations** | [`backend/app/api/routes/simulations.py`](backend/app/api/routes/simulations.py) — traffic spike, node failure, scale response |
+| **Telemetry mode** | `GET /api/v1/telemetry` — `demo` / `cluster` / `local` / `hybrid` |
+
+**Try live public Prometheus (no Kubernetes required):** use the community demo as `PROMETHEUS_URL` with **`MOCK_MODE=false`** and **`TELEMETRY_MODE=local`** so node_exporter series populate the pipeline:
+
+```text
+PROMETHEUS_URL=https://prometheus.demo.do.prometheus.io
+MOCK_MODE=false
+TELEMETRY_MODE=local
+```
+
+Then open `/docs` and call `GET /api/v1/metrics/cluster` or use the dashboard **Metrics** tab.
+
+**Quick curls** (replace host with your API):
+
+```bash
+curl -s "https://YOUR-API/api/v1/telemetry"
+curl -s "https://YOUR-API/api/v1/recommendations?scenario=wasteful" | head -c 800
+curl -s "https://YOUR-API/api/v1/cost/summary?scenario=wasteful"
+curl -s "https://YOUR-API/api/v1/simulations/traffic-spike?load_factor=2&scenario=wasteful"
+```
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/health` | Health check |
+| GET | `/api/v1/telemetry` | Effective telemetry mode (`demo` / `cluster` / `local` / `hybrid`) |
 | GET | `/api/v1/metrics/cluster?scenario=wasteful` | Cluster-wide utilization summary |
 | GET | `/api/v1/metrics/pods?scenario=wasteful` | Per-pod utilization |
 | GET | `/api/v1/metrics/nodes?scenario=wasteful` | Per-node utilization |

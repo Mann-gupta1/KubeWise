@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ClusterOverview from "@/components/ClusterOverview";
+import PipelineOverview from "@/components/PipelineOverview";
 import SavingsTable from "@/components/SavingsTable";
 import { api } from "@/lib/api";
 import type { ClusterMetrics, CostSummary } from "@/lib/types";
@@ -66,6 +67,8 @@ export default function DashboardHome() {
           {clusterMetrics?.cluster.name} &mdash; {clusterMetrics?.cluster.provider} / {clusterMetrics?.cluster.region}
         </p>
       </div>
+
+      <PipelineOverview />
 
       <ClusterOverview
         cpuUtilization={summary?.cpu_utilization_pct ?? 0}

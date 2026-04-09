@@ -46,11 +46,12 @@ def _recommend_for_deployment(dep: dict) -> dict | None:
     cpu_util_ratio = avg_cpu_per_replica / cpu_request
 
     traffic_pattern = _classify_traffic(cpu_util_ratio)
+    # Node-level pressure not available per-deployment; use neutral defaults (see confidence.py).
     confidence, confidence_breakdown = compute_confidence_advanced(
         cpu_util_ratio,
         traffic_pattern=traffic_pattern,
-        avg_node_cpu_util=avg_node_cpu,
-        avg_node_mem_util=avg_node_mem,
+        avg_node_cpu_util=0.5,
+        avg_node_mem_util=0.5,
     )
 
     current_total_cpu = cpu_request * replicas
