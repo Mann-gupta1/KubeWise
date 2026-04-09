@@ -174,10 +174,17 @@ The **home page** is a cluster overview; the **intelligence pipeline** is visibl
 | **Simulations** | [`backend/app/api/routes/simulations.py`](backend/app/api/routes/simulations.py) — traffic spike, node failure, scale response |
 | **Telemetry mode** | `GET /api/v1/telemetry` — `demo` / `cluster` / `local` / `hybrid` |
 
-**Try live public Prometheus (no Kubernetes required):** use the community demo as `PROMETHEUS_URL` with **`MOCK_MODE=false`** and **`TELEMETRY_MODE=local`** so node_exporter series populate the pipeline:
+**Try live public Prometheus (no Kubernetes required):** point `PROMETHEUS_URL` at a **working** community demo with **`MOCK_MODE=false`** and **`TELEMETRY_MODE=local`** (node_exporter path) or **`TELEMETRY_MODE=cluster`** if the demo exposes `kube_*` / `container_*` metrics.
+
+Verified examples (use **exactly** these hosts — `prometheus.demo.do.prometheus.io` does **not** resolve):
 
 ```text
-PROMETHEUS_URL=https://prometheus.demo.do.prometheus.io
+# PromLabs demo (node, cAdvisor, demo jobs — good for local + charts)
+PROMETHEUS_URL=https://demo.promlabs.com
+
+# Official Prometheus project demo
+PROMETHEUS_URL=https://prometheus.demo.prometheus.io
+
 MOCK_MODE=false
 TELEMETRY_MODE=local
 ```
