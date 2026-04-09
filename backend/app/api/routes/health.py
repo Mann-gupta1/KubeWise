@@ -20,6 +20,8 @@ async def telemetry_info():
         "mock_mode": settings.MOCK_MODE,
         "opencost_configured": bool((settings.OPENCOST_URL or "").strip()),
         "prometheus_required": not settings.MOCK_MODE,
+        "live_prometheus_queries": not settings.MOCK_MODE,
+        "note": "When mock_mode is true, all metrics are synthetic; PROMETHEUS_URL is not used.",
     }
 
 

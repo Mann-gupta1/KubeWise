@@ -189,6 +189,8 @@ MOCK_MODE=false
 TELEMETRY_MODE=local
 ```
 
+**Critical:** If **`MOCK_MODE=true`** (the default in `.env.example`), the API **never** calls Prometheus — `PROMETHEUS_URL` is ignored and you always get **synthetic** data. You must set **`MOCK_MODE=false`** on the server (e.g. Render) and redeploy. Check **`GET /api/v1/telemetry`** (`live_prometheus_queries` should be `true`) and **`GET /api/v1/metrics/cluster`** — the JSON includes a **`telemetry`** object with `live: true` when PromQL ran.
+
 Then open `/docs` and call `GET /api/v1/metrics/cluster` or use the dashboard **Metrics** tab.
 
 **Quick curls** (replace host with your API):
@@ -206,7 +208,7 @@ curl -s "https://YOUR-API/api/v1/simulations/traffic-spike?load_factor=2&scenari
 |--------|----------|-------------|
 | GET | `/api/v1/health` | Health check |
 | GET | `/api/v1/telemetry` | Effective telemetry mode (`demo` / `cluster` / `local` / `hybrid`) |
-| GET | `/api/v1/metrics/cluster?scenario=wasteful` | Cluster-wide utilization summary |
+| GET | `/api/v1/metrics/cluster?scenario=wasteful` | Cluster-wide utilization summary + **`telemetry`** (synthetic vs live Prometheus) |
 | GET | `/api/v1/metrics/pods?scenario=wasteful` | Per-pod utilization |
 | GET | `/api/v1/metrics/nodes?scenario=wasteful` | Per-node utilization |
 | GET | `/api/v1/metrics/timeseries/cpu` | CPU time-series data |

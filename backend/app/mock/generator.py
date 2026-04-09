@@ -32,10 +32,10 @@ def generate_time_series(
 def generate_cluster_data(scenario_name: str = "wasteful") -> dict:
     """Generate a full snapshot of cluster data for the given scenario."""
     scenario = ALL_SCENARIOS.get(scenario_name, ALL_SCENARIOS["wasteful"])
-    return _build_cluster_snapshot(scenario)
+    return _build_cluster_snapshot(scenario, scenario_name)
 
 
-def _build_cluster_snapshot(scenario: ClusterScenario) -> dict:
+def _build_cluster_snapshot(scenario: ClusterScenario, scenario_key: str = "wasteful") -> dict:
     rng = np.random.default_rng()
 
     nodes_data = []
@@ -105,6 +105,11 @@ def _build_cluster_snapshot(scenario: ClusterScenario) -> dict:
             "provider": scenario.provider,
             "region": scenario.region,
             "description": scenario.description,
+        },
+        "telemetry": {
+            "data_source": "synthetic",
+            "scenario": scenario_key,
+            "live": False,
         },
         "summary": {
             "total_nodes": len(scenario.nodes),

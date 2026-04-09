@@ -17,9 +17,23 @@ export interface ClusterInfo {
   description?: string;
 }
 
+export interface ClusterTelemetry {
+  data_source?: string;
+  scenario?: string;
+  pipeline?: string;
+  live?: boolean;
+  queried_at?: string;
+  effective_mode?: string;
+  mock_mode?: boolean;
+  prometheus_host?: string | null;
+  live_queries_enabled?: boolean;
+  hint?: string | null;
+}
+
 export interface ClusterMetrics {
   cluster: ClusterInfo;
   summary: ClusterSummary;
+  telemetry?: ClusterTelemetry;
 }
 
 export interface PodUtilization {

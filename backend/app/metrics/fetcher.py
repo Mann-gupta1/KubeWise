@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime, timezone
 
 import httpx
 
@@ -12,6 +13,15 @@ from app.mock.generator import generate_cluster_data, generate_time_series
 from app.metrics import prometheus_queries as pq
 
 logger = logging.getLogger("kubewise.metrics")
+
+
+def _telemetry_now(live: bool, pipeline: str) -> dict:
+    return {
+        "data_source": "prometheus",
+        "pipeline": pipeline,
+        "live": live,
+        "queried_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 class MetricsFetcher:
@@ -234,6 +244,7 @@ class MetricsFetcher:
                 "provider": "baremetal",
                 "region": "prometheus",
             },
+            "telemetry": _telemetry_now(True, "node_exporter"),
             "summary": {
                 "total_nodes": len(nodes_data),
                 "total_pods": 0,
@@ -272,6 +283,7 @@ class MetricsFetcher:
 
         return {
             "cluster": {"name": "live-cluster", "provider": "aws", "region": "unknown"},
+            "telemetry": _telemetry_now(True, "kubernetes"),
             "summary": {
                 "total_nodes": len(nodes_data),
                 "total_pods": len(pods_data),
